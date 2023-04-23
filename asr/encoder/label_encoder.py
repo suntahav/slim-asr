@@ -1,7 +1,10 @@
 import torch
 from torch import Tensor
 import torch.nn as nn
-from asr.modules import get_attn_pad_mask, get_attn_subsequent_mask, PositionalEncoding
+import sys
+sys.path.append("..")
+from modules.positional_encoding import PositionalEncoding
+from modules.mask import get_attn_pad_mask, get_attn_subsequent_mask
 from .encoder_layer import TransformerTransducerEncoderLayer
 from typing import Tuple
 import numpy as np

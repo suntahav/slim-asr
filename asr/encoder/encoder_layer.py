@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
-from asr.modules import MultiHeadAttention, PositionWiseFeedForward
+import sys
+sys.path.append("..")
+from modules.attention import MultiHeadAttention
+from modules.position_wise_feedforward import PositionWiseFeedForward
 
 class TransformerTransducerEncoderLayer(nn.Module):
     def __init__(self, d_model = 512, nhead = 8, dim_feedforward = 2048, dropout = 0.1, activation = "relu") -> None:

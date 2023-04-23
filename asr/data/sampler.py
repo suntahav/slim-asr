@@ -3,7 +3,7 @@ import os
 import numpy as np
 from torch.utils.data import Sampler
 
-from .audio.load import load_audio
+from .librispeech.load_audio import load_audio
 
 
 class RandomSampler(Sampler):

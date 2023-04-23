@@ -4,14 +4,12 @@ import random
 
 import numpy as np
 import torch
-from omegaconf import DictConfig
 from torch import Tensor
 from torch.utils.data import Dataset
 
-# from openspeech.data import AUDIO_FEATURE_TRANSFORM_REGISTRY
-from openspeech.data.audio.augment import JoiningAugment, NoiseInjector, SpecAugment, TimeStretchAugment
-from .load_audio import load_audio
 
+from .load_audio import load_audio
+from .specaugment import SpecAugment
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +39,6 @@ class SpeechToTextDataset(Dataset):
 
     def __init__(
         self,
-        configs: DictConfig,
         dataset_path: str,
         audio_paths: list,
         transcripts: list,
@@ -61,58 +58,25 @@ class SpeechToTextDataset(Dataset):
         self.dataset_size = len(self.audio_paths)
         self.sos_id = sos_id
         self.eos_id = eos_id
-        self.sample_rate = configs.audio.sample_rate
-        self.num_mels = configs.audio.num_mels
+        self.sample_rate = 16000
+        self.num_mels = 128
         self.del_silence = del_silence
         self.apply_spec_augment = apply_spec_augment
         self.apply_noise_augment = apply_noise_augment
         self.apply_time_stretch_augment = apply_time_stretch_augment
         self.apply_joining_augment = apply_joining_augment
-        # self.transforms = AUDIO_FEATURE_TRANSFORM_REGISTRY[configs.audio.name](configs)
         self._load_audio = load_audio
 
         if self.apply_spec_augment:
             self._spec_augment = SpecAugment(
-                freq_mask_para=configs.augment.freq_mask_para,
-                freq_mask_num=configs.augment.freq_mask_num,
-                time_mask_num=configs.augment.time_mask_num,
+                freq_mask_para=27,
+                freq_mask_num=2,
+                time_mask_num=4,
             )
             for idx in range(self.dataset_size):
                 self.audio_paths.append(self.audio_paths[idx])
                 self.transcripts.append(self.transcripts[idx])
                 self.augments.append(self.SPEC_AUGMENT)
-
-        if self.apply_noise_augment:
-            if eval(configs.augment.noise_dataset_dir) is None:
-                raise ValueError("`noise_dataset_dir` should be contain audio files.")
-
-            self._noise_injector = NoiseInjector(
-                noise_dataset_dir=configs.augment.noise_dataset_dir,
-                sample_rate=configs.augment.noise_sample_rate,
-                noise_level=configs.augment.noise_level,
-            )
-            for idx in range(self.dataset_size):
-                self.audio_paths.append(self.audio_paths[idx])
-                self.transcripts.append(self.transcripts[idx])
-                self.augments.append(self.NONE_AUGMENT)
-
-        if self.apply_time_stretch_augment:
-            self._time_stretch_augment = TimeStretchAugment(
-                min_rate=configs.time_stretch_min_rate,
-                max_rate=configs.time_stretch_max_rate,
-            )
-            for idx in range(self.dataset_size):
-                self.audio_paths.append(self.audio_paths[idx])
-                self.transcripts.append(self.transcripts[idx])
-                self.augments.append(self.TIME_STRETCH)
-
-        if self.apply_joining_augment:
-            self._joining_augment = JoiningAugment()
-            for idx in range(self.dataset_size):
-                self.audio_paths.append(self.audio_paths[idx])
-                self.transcripts.append(self.transcripts[idx])
-                self.augments.append(self.AUDIO_JOINING)
-
         self.total_size = len(self.audio_paths)
 
         tmp = list(zip(self.audio_paths, self.transcripts, self.augments))

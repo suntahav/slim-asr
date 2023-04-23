@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from asr.encoder import TransformerTransducerAudioEncoder, TransformerTransducerLabelEncoder
+from encoder.audio_encoder import TransformerTransducerAudioEncoder
+from encoder.label_encoder import TransformerTransducerLabelEncoder
 
 class TransformerTransducer(nn.Module):
     """

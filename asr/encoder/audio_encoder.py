@@ -1,7 +1,9 @@
 import torch
 from torch import nn
-
-from asr.modules import PositionalEncoding, get_attn_pad_mask
+import sys
+sys.path.append("..")
+from modules.positional_encoding import PositionalEncoding
+from modules.mask import get_attn_pad_mask
 from .encoder_layer import TransformerTransducerEncoderLayer
 
 from typing import Tuple

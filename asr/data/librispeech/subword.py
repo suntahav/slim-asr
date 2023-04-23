@@ -27,6 +27,7 @@ def _prepare_tokenizer(train_transcripts, vocab_size):
         f"--eos_id=2 "
         f"--unk_id=3 "
         f"--user_defined_symbols=<blank>"
+        f"--max_sentence_length=128"
     )
 
 

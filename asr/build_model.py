@@ -1,6 +1,7 @@
 import torch
-from asr.encoder import TransformerTransducerAudioEncoder, TransformerTransducerLabelEncoder
-from .model import TransformerTransducer
+from encoder.audio_encoder import TransformerTransducerAudioEncoder
+from encoder.label_encoder import TransformerTransducerLabelEncoder
+from model import TransformerTransducer
 def build_transformer_transducer(
         device: torch.device,
         num_vocabs: int,
@@ -10,8 +11,8 @@ def build_transformer_transducer(
         num_audio_layers: int = 18,
         num_label_layers: int = 2,
         num_heads: int = 8,
-        dropout: float = 0.3,
-        max_len: int = 5000,
+        dropout: float = 0.2,
+        max_len: int = 4096,
         pad_id: int = 0,
         sos_id: int = 1,
         eos_id: int = 2,
@@ -50,7 +51,7 @@ def build_audio_encoder(
         num_audio_layers: int = 18,
         num_heads: int = 8,
         dropout: float = 0.3,
-        max_len: int = 5000,
+        max_len: int = 4096,
 ) -> TransformerTransducerAudioEncoder:
     return TransformerTransducerAudioEncoder(
         device,
@@ -72,7 +73,7 @@ def build_label_encoder(
         num_label_layers: int = 2,
         num_heads: int = 8,
         dropout: float = 0.3,
-        max_len: int = 5000,
+        max_len: int = 4096,
         pad_id: int = 0,
         sos_id: int = 1,
         eos_id: int = 2,
