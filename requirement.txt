@@ -1,0 +1,4 @@
+sentencepiece
+wget
+pytorch-lightning
+omegaconf
