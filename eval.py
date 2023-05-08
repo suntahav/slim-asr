@@ -3,7 +3,7 @@ import pathlib
 from argparse import ArgumentParser
 
 import sentencepiece as spm
-
+import time
 import torch
 import torchaudio
 from lightning import ConformerRNNTModule
@@ -28,13 +28,18 @@ def run_eval(args):
     total_edit_distance = 0
     total_length = 0
     dataloader = data_module.test_dataloader()
+    count,total_time = 0,0
     with torch.no_grad():
         for idx, (batch, sample) in enumerate(dataloader):
             actual = sample[0][2]
+            start_time = time.time()
             predicted = model(batch)
+            end_time = time.time()
+            total_time += end_time - start_time
             total_edit_distance += compute_word_level_distance(actual, predicted)
             total_length += len(actual.split())
             if idx % 100 == 0:
+                print(f"processing time: {total_time / (100 + 1)}")
                 logger.warning(f"Processed elem {idx}; WER: {total_edit_distance / total_length}")
     logger.warning(f"Final WER: {total_edit_distance / total_length}")
 
@@ -68,7 +73,7 @@ def cli_main():
     parser.add_argument(
         "--use-cuda",
         action="store_true",
-        default=False,
+        default=True,
         help="Run using CUDA.",
     )
     args = parser.parse_args()

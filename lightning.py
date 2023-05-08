@@ -90,6 +90,7 @@ class ConformerRNNTModule(LightningModule):
         # ``conformer_rnnt_base`` hardcodes a specific Conformer RNN-T configuration.
         # For greater customizability, please refer to ``conformer_rnnt_model``.
         self.model = conformer_rnnt_base()
+        
         self.loss = torchaudio.transforms.RNNTLoss(reduction="sum")
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=8e-4, betas=(0.9, 0.98), eps=1e-9)
         self.warmup_lr_scheduler = WarmupLR(self.optimizer, 40, 120, 0.96)
@@ -102,16 +103,23 @@ class ConformerRNNTModule(LightningModule):
         prepended_targets[:, 1:] = batch.targets
         prepended_targets[:, 0] = self.blank_idx
         prepended_target_lengths = batch.target_lengths + 1
+        output_slim, src_lengths_slim, _, _ = self.model(
+            batch.features,
+            batch.feature_lengths,
+            prepended_targets,
+            prepended_target_lengths,idx = 1
+        )
         output, src_lengths, _, _ = self.model(
             batch.features,
             batch.feature_lengths,
             prepended_targets,
-            prepended_target_lengths,
+            prepended_target_lengths,idx = 1
         )
+        loss_slim = self.loss(output_slim, batch.targets, src_lengths_slim, batch.target_lengths)
         loss = self.loss(output, batch.targets, src_lengths, batch.target_lengths)
+        self.log(f"Losses/{step_type}_loss_slim", loss_slim, on_step=True, on_epoch=True)
         self.log(f"Losses/{step_type}_loss", loss, on_step=True, on_epoch=True)
-
-        return loss
+        return loss + loss_slim
 
     def configure_optimizers(self):
         return (
@@ -121,7 +129,7 @@ class ConformerRNNTModule(LightningModule):
 
     def forward(self, batch: Batch):
         decoder = RNNTBeamSearch(self.model, self.blank_idx)
-        hypotheses = decoder(batch.features.to(self.device), batch.feature_lengths.to(self.device), 20)
+        hypotheses = decoder(batch.features.to(self.device), batch.feature_lengths.to(self.device), 20,idx = 1)
         return post_process_hypos(hypotheses, self.sp_model)[0][0]
 
     def training_step(self, batch: Batch, batch_idx):

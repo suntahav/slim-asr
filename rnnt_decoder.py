@@ -266,7 +266,7 @@ class RNNTBeamSearch(torch.nn.Module):
 
         return b_hypos
 
-    def forward(self, input: torch.Tensor, length: torch.Tensor, beam_width: int) -> List[Hypothesis]:
+    def forward(self, input: torch.Tensor, length: torch.Tensor, beam_width: int,idx=1.0) -> List[Hypothesis]:
         r"""Performs beam search for the given input sequence.
         T: number of frames;
         D: feature dimension of each frame.
@@ -288,7 +288,7 @@ class RNNTBeamSearch(torch.nn.Module):
         if input.dim() == 0:
             input = input.unsqueeze(0)
 
-        enc_out, _ = self.model.transcribe(input, length)
+        enc_out, _ = self.model.transcribe(input, length,idx=idx)
         return self._search(enc_out, None, beam_width)
 
     @torch.jit.export

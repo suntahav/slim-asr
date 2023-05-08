@@ -3,9 +3,9 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 from rnnt import RNNT
-from conformer import Conformer
+from conformer_slim import Conformer
 from rnnt import _Joiner, _Predictor, _TimeReduction, _Transcriber
-
+from slimmable import SlimmableLinear,SwitchableLayerNorm
 
 TrieNode = Tuple[Dict[int, "TrieNode"], int, Optional[Tuple[int, int]]]
 
@@ -23,10 +23,12 @@ class _ConformerEncoder(torch.nn.Module, _Transcriber):
         conformer_num_heads: int,
         conformer_depthwise_conv_kernel_size: int,
         conformer_dropout: float,
+        switches = [0.75,1.0]
     ) -> None:
         super().__init__()
+        self.switches = switches
         self.time_reduction = _TimeReduction(time_reduction_stride)
-        self.input_linear = torch.nn.Linear(input_dim * time_reduction_stride, conformer_input_dim)
+        self.input_linear = SlimmableLinear(input_dim * time_reduction_stride, [int(ele*conformer_input_dim) for ele in self.switches],sliminput=False)
         self.conformer = Conformer(
             num_layers=conformer_num_layers,
             input_dim=conformer_input_dim,
@@ -37,14 +39,15 @@ class _ConformerEncoder(torch.nn.Module, _Transcriber):
             use_group_norm=True,
             convolution_first=True,
         )
-        self.output_linear = torch.nn.Linear(conformer_input_dim, output_dim)
+        self.output_linear = SlimmableLinear([int(ele*conformer_input_dim) for ele in self.switches], output_dim,slimoutput=False)
+
         self.layer_norm = torch.nn.LayerNorm(output_dim)
 
-    def forward(self, input: torch.Tensor, lengths: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input: torch.Tensor, lengths: torch.Tensor,idx = 1) -> Tuple[torch.Tensor, torch.Tensor]:
         time_reduction_out, time_reduction_lengths = self.time_reduction(input, lengths)
-        input_linear_out = self.input_linear(time_reduction_out)
-        x, lengths = self.conformer(input_linear_out, time_reduction_lengths)
-        output_linear_out = self.output_linear(x)
+        input_linear_out = self.input_linear(time_reduction_out,idx)
+        x, lengths = self.conformer(input_linear_out, time_reduction_lengths,idx)
+        output_linear_out = self.output_linear(x,idx)
         layer_norm_out = self.layer_norm(output_linear_out)
         return layer_norm_out, lengths
 
@@ -478,6 +481,7 @@ def conformer_rnnt_model(
     lstm_layer_norm_epsilon: int,
     lstm_dropout: int,
     joiner_activation: str,
+
 ) -> RNNT:
     r"""Builds Conformer-based recurrent neural network transducer (RNN-T) model.
     Args:
@@ -515,6 +519,11 @@ def conformer_rnnt_model(
         conformer_depthwise_conv_kernel_size=conformer_depthwise_conv_kernel_size,
         conformer_dropout=conformer_dropout,
     )
+    encoder_trainable_params = sum(
+	p.numel() for p in encoder.parameters() if p.requires_grad
+    )
+    print("Number of trainable parameters in encoder: {}".format(encoder_trainable_params))
+
     predictor = _Predictor(
         num_symbols=num_symbols,
         output_dim=encoding_dim,
@@ -525,7 +534,13 @@ def conformer_rnnt_model(
         lstm_layer_norm_epsilon=lstm_layer_norm_epsilon,
         lstm_dropout=lstm_dropout,
     )
+    predictor_trainable_params = sum(
+                    p.numel() for p in predictor.parameters() if p.requires_grad) 
+    print("Number of trainable parameters in predictor: {}".format(predictor_trainable_params))
     joiner = _Joiner(encoding_dim, num_symbols, activation=joiner_activation)
+    Joiner_trainable_params = sum(
+                    p.numel() for p in joiner.parameters() if p.requires_grad)
+    print("Number of trainable parameters in joiner: {}".format(Joiner_trainable_params))
     return RNNT(encoder, predictor, joiner)
 
 

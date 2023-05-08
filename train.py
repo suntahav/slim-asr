@@ -18,7 +18,7 @@ def run_train(args):
         checkpoint_dir,
         monitor="Losses/val_loss",
         mode="min",
-        save_top_k=5,
+        every_n_epochs = 1,
         save_weights_only=False,
         verbose=True,
     )
@@ -26,7 +26,7 @@ def run_train(args):
         checkpoint_dir,
         monitor="Losses/train_loss",
         mode="min",
-        save_top_k=5,
+        save_top_k=1,
         save_weights_only=False,
         verbose=True,
     )
@@ -42,11 +42,12 @@ def run_train(args):
         num_nodes=args.nodes,
         devices='auto',
         accelerator="gpu",
-        strategy=DDPStrategy(find_unused_parameters=False),
+        strategy=DDPStrategy(find_unused_parameters=True),
         callbacks=callbacks,
         reload_dataloaders_every_n_epochs=1,
         gradient_clip_val=10.0,
         precision='16-mixed',
+        log_every_n_steps=10,
     )
 
     sp_model = spm.SentencePieceProcessor(model_file=str(args.sp_model_path))

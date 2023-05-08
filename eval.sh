@@ -1,0 +1,1 @@
+python eval.py --checkpoint-path /datadrive/vamsikrishna/sandeep/pytorch-conformer/experiments/checkpoints_075_1_0/epoch=48-step=109515.ckpt --librispeech-path ./datasets/ --sp-model-path ./spm_unigram_1023.model

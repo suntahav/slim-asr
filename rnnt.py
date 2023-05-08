@@ -128,7 +128,7 @@ class _CustomLSTM(torch.nn.Module):
 
 class _Transcriber(ABC):
     @abstractmethod
-    def forward(self, input: torch.Tensor, lengths: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input: torch.Tensor, lengths: torch.Tensor,idx) -> Tuple[torch.Tensor, torch.Tensor]:
         pass
 
     @abstractmethod
@@ -450,7 +450,7 @@ class RNNT(torch.nn.Module):
         source_lengths: torch.Tensor,
         targets: torch.Tensor,
         target_lengths: torch.Tensor,
-        predictor_state: Optional[List[List[torch.Tensor]]] = None,
+        predictor_state: Optional[List[List[torch.Tensor]]] = None,idx =1.0,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, List[List[torch.Tensor]]]:
         r"""Forward pass for training.
         B: batch size;
@@ -487,7 +487,7 @@ class RNNT(torch.nn.Module):
         """
         source_encodings, source_lengths = self.transcriber(
             input=sources,
-            lengths=source_lengths,
+            lengths=source_lengths,idx = idx,
         )
         target_encodings, target_lengths, predictor_state = self.predictor(
             input=targets,
@@ -547,6 +547,7 @@ class RNNT(torch.nn.Module):
         self,
         sources: torch.Tensor,
         source_lengths: torch.Tensor,
+        idx =1.0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Applies transcription network to sources in non-streaming mode.
         B: batch size;
@@ -566,7 +567,7 @@ class RNNT(torch.nn.Module):
                     output lengths, with shape `(B,)` and i-th element representing
                     number of valid elements for i-th batch element in output frame sequences.
         """
-        return self.transcriber(sources, source_lengths)
+        return self.transcriber(sources, source_lengths,idx = idx)
 
     @torch.jit.export
     def predict(
